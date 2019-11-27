@@ -3,35 +3,87 @@ from statistics import mean
 import matplotlib.pyplot as plt
 from operator import attrgetter
 
-N = 50 #number of bits in the string
-P = 50 #population size (no of individuals in the population)
-nGen = 50 #number of generations
-mutRate = 0.02 #mutation rate
-nSlice = 10 #how many times should the gene should be split to compare to the rule.
+
+N = 70 #number of bits in the string
+P = 150 #population size (no of individuals in the population)
+nGen = 100 #number of generations
+mutRate = 0.2 #mutation rate 1/N
+nSlice = 10 #how many times should the gene should be split to compare to the rule. should be N / (Size of condLength + outLength)
+maxFitness = 60 #stop searching when this fitness value is reached
+
+dataloc = "datasets/data1.txt" #the location of the dataset
+wildcards = True #whether or not to use wildcards
+condLength = 6 #the number of bits in the condition
+outLength = 1 #the number of bits in the output
 
 class rule():
     condition = []
     output = []
 
-    def __init__(self, input=[0,0,0,0], output=[0]): 
+    def __init__(self, condition=[0]*condLength, output=[0]*outLength): 
         self.condition = condition
         self.output = output
-
+        
     def getInputLength(self):
         return len(self.condition)
     
     def getOutputLength(self):
         return len(self.output)
 
-    def setRule(self, input, output):
-        self.condition = input
-        self.output = output
+    def setCondition(self, cond):
+        self.condition = cond
+
+    def setOutput(self, out):
+        self.output = out
 
     def printRule(self):
-        print("Rule with input: ", self.condition, "and output", self.output)
+        print("Rule with condition: ", self.condition, "and output", self.output)
 
-    def compare(self, input):
-        print("do stuff here")
+    def compare(self, slice): #returns true if cond and output matches returns false if not
+        if not wildcards:
+            cond = str()
+            out = None
+            for i in range(0,len(slice)-outLength):
+                cond += str(slice[i])
+            out = slice[-1] #output
+            if cond == self.condition:
+                if int(out) == int(self.output):
+                    return True
+            return False
+        else:
+            #match condition
+            match = True
+            for i in range(0,condLength):
+                if (int(slice[i]) == int(self.condition[i]) or int(slice[i]) == 2) and match == True:
+                    #print("bitmatch")   
+                    pass             
+                else:
+                    match = False
+                    #print("bitFAIL")
+            #match output
+            oi = 0
+            if not condLength == condLength+(outLength-1):
+                for i in range(condLength, condLength+(outLength-1)):
+                    print(i)
+                    if (int(slice[i]) == int(self.output[oi]) and match == True):
+                        pass
+                    else: 
+                        match = False
+                    oi+=1
+                return match
+            else:
+                if (int(slice[condLength]) == int(self.output[oi]) and match == True):
+                        pass
+                else: 
+                    match = False
+                    oi+=1
+                return match
+
+
+
+                    
+                
+
 
 
 
@@ -44,9 +96,17 @@ class individual():
         self.fitness = 0
         
     def randomiseGene(self):
-        for i in range (0, N):
-            c = random.randrange(0, 2, 1)
-            self.gene.append(c)
+        for i in range (1, N+1):
+            if not wildcards:
+                c = c = random.randint(0, 1)
+                self.gene.append(c)
+            else: #have a possibility of 2 being appended to the gene
+                if i % (condLength+1) == 0:
+                    c = random.randint(0, 1)
+                    self.gene.append(c)
+                else:
+                    c = random.randint(0, 2)
+                    self.gene.append(c)
 
     def setGene(self, gene):
         self.gene = gene
@@ -57,31 +117,48 @@ class individual():
     def printFitness(self):
         print(self.fitness)
 
-    def fitness(self, rulebase): #split code 
-        slicedGene = self.gene
-        rb.append(slience)
-        for i in range(0, N/7):
-            rb.append([])
-        for rule in rb:
-            for bit in gene[:int(7)]: #from 0 to 7
-                rb.append(bit)
-            chromosone = chromosone[int(7):]
+    def fitnessFunction(self, rulebase):
+        sliceList = self.sliceGene()
+        count = 0
+        for r in rulebase: 
+            found = False
+            for slice in sliceList:
+                if r.compare(slice):
+                    found = True
+                elif not r.compare(slice):
+                    found = False
+                if found == True:
+                    count += 1
+        self.fitness = count
 
     def sliceGene(self):
         avg = len(self.gene) / float(nSlice)
         list = []
         last = 0.0
         while last < len(self.gene):
-            list.append(list[int(last):int(last + avg)])
+            list.append(self.gene[int(last):int(last + avg)])
             last += avg
         return list
         
+def loadDataset(dataloc):
+    rds = []
+    f = open(dataloc, "r")
+    for line in f:
+        line = str(line.rstrip()).split(" ")
+        #print(line)
+        rds.append(line)
+    return rds #raw data
 
-
-#population = [] #list to store the population of individuals
-#winners = [] #list to store selected individuals
-def loadDataset(dataset):
-    print()
+def buildRulebase(dataset):
+    rulebase = []
+    for data in dataset:
+        r = rule()
+        r.setCondition(data[0])
+        r.setOutput(data[1])
+        #r.printRule() #prints the rule
+        #print(r.compare(['0','0','0','0','0','0','0'])) #test
+        rulebase.append(r)
+    return rulebase
 
 def createInitalPopulation(): #create P number of individuals and append them to the list.
     pop = []
@@ -95,16 +172,9 @@ def randomisePopulation(pop): #function to set up the intial random genes in the
         i.randomiseGene()
         #i.printGene()
 
-def calculateFitness(indiv): #function to calculate and store the fitness value for a given individual
-    count = 0
-    for i in indiv.gene:
-        if i == 1:
-            count = count + 1
-    indiv.fitness = count
-
-def recalculateAllFitness(pop):
+def recalculateAllFitness(pop, rulebase): #run the fitness function for all members in the pop
     for i in pop:
-        calculateFitness(i)
+        i.fitnessFunction(rulebase)
 
 def randomIndividual(pop): #function to pick and return a random individual from a given list
     indiv = random.choice(pop)
@@ -124,12 +194,15 @@ def selectWinners(pop): #function to select P number of winners by comparing two
     return winners
 
 def mutateIndividual(indiv): #perform mutation in all bits in an individuals gene
-    for index, b in enumerate(indiv.gene):
-        if random.random() < mutRate:
-            if b == 1:
-                indiv.gene[index] = 0
-            if b == 0:
-                indiv.gene[index] = 1
+    if not wildcards:
+        for index, b in enumerate(indiv.gene):
+            if random.random() < mutRate:
+                if b == 1:
+                    if index % (condLength+1) == 0:
+                        indiv.gene[index] = random.choice([0,2])
+                if b == 0:
+                    if index % (condLength+1) == 0:
+                        indiv.gene[index] = random.choice([1,2])
 
 def doCrossover(pop):
     motherlist = pop[::2] #get every member at even positions
@@ -145,18 +218,18 @@ def doCrossover(pop):
         child1Gene = fatherlist[i].gene[:pivotpoint] + motherlist[i].gene[pivotpoint:]
         child1 = individual()
         child1.setGene(child1Gene)
-        calculateFitness(child1)
+        child1.fitnessFunction(rulebase)
         postCrossoverChilden.append(child1)
         child2Gene = motherlist[i].gene[:pivotpoint] + fatherlist[i].gene[pivotpoint:]
         child2 = individual()
         child2.setGene(child2Gene)
-        calculateFitness(child2)
+        child2.fitnessFunction(rulebase)
         postCrossoverChilden.append(child2)
     return postCrossoverChilden
 
 def findGoldenBaby(pop): #this function is specfic to the fitness function used
     for i in pop:
-        if i.fitness == N:
+        if i.fitness == maxFitness:
             print("  GoldenBaby: Individual with fitness " + str(i.fitness) + ", found! Quit searching")
             return i
     return None
@@ -166,7 +239,7 @@ def findAllTimeBest(pop, previous):
         previous = pop[0]
     best = previous
     for i in pop:
-        calculateFitness(i)
+        i.fitnessFunction(rulebase)
         if i.fitness > previous.fitness:
             best = i
     return best
@@ -187,12 +260,16 @@ def showPlot(mean, best):
     plt.show()
 
 
+#Import dataset and build rulebase
+ds = loadDataset(dataloc)
+rulebase = buildRulebase(ds)
+
+
 def runGA():
-    #List to store the rulebase
-    rulebase = []
     #Lists to store data for plotting the graph
     meanPlot = []
     bestPlot = []
+
     #Lists to store population
     winners = []
     population = []
@@ -206,14 +283,12 @@ def runGA():
     generation += 1
 
     #Generate their fitness values
-    for i in population:
-        calculateFitness(i)
-        #i.printFitness()
+    recalculateAllFitness(population, rulebase)
     print("  The average fitness for the initial population is", mean(i.fitness for i in population))
 
     while generation <= nGen: #stop the loop once fitness N is reached
         if goldenBaby == None:
-            recalculateAllFitness(population)
+            recalculateAllFitness(population, rulebase)
             goldenBaby = findGoldenBaby(population)
 
         print()
@@ -231,22 +306,19 @@ def runGA():
         #Perform mutation
         for i in population:
             mutateIndividual(i)
-        recalculateAllFitness(population)
+        recalculateAllFitness(population, rulebase)
         #print("  mean fitness after mutation is", mean(i.fitness for i in population))
 
         
 
         #Gather some data
         if goldenBaby == None:
-            recalculateAllFitness(population)
+            recalculateAllFitness(population, rulebase)
             goldenBaby = findGoldenBaby(population)
 
-        if goldenBaby != None:
-            print("  Optimum solution found in",generation,"generations.")
-            bestPlot.append(goldenBaby.fitness)
-            break;       
+             
         
-        recalculateAllFitness(population)
+        recalculateAllFitness(population, rulebase)
         allTimeBest = findAllTimeBest(population, allTimeBest)
         print("  The fittest individual this generation has a fitness value of", allTimeBest.fitness)
         bestPlot.append(allTimeBest.fitness)
@@ -255,10 +327,25 @@ def runGA():
         print("  The average fitness value for this generation is", meanVal)
         meanPlot.append(meanVal)
 
+        if goldenBaby != None:
+            print("  Optimum solution found in",generation,"generations.")
+            p = str(goldenBaby.gene)
+            p = p.strip("[,]")
+            p = p.replace(', ', '')
+            print("it's gene is", p)
+            #bestPlot.append(goldenBaby.fitness)
+            break;  
+
         #Finish generation
         generation += 1
     showPlot(meanPlot, bestPlot)
 
 runGA()
+
+def testFunc():
+    population = createInitalPopulation()
+    randomisePopulation(population)
+
+#testFunc()
 
 

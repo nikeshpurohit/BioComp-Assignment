@@ -1,25 +1,58 @@
-i = 1
-list = []
-N = 70
-cs = 10
+class rule():
+    condition = []
+    output = []
 
-for i in range(0,N):
-    list.append(i)
-    i += 1
+    def __init__(self, condition=[0,0,0,0,0,0], output=[0]): 
+        self.condition = condition
+        self.output = output
 
-print(list)
+    def getInputLength(self):
+        return len(self.condition)
+    
+    def getOutputLength(self):
+        return len(self.output)
 
-def chunkIt(L, num):
-    avg = len(L) / float(num)
-    out = []
-    last = 0.0
+    def setCondition(self, cond):
+        self.condition = cond
 
-    while last < len(L):
-        out.append(L[int(last):int(last + avg)])
-        last += avg
+    def setOutput(self, out):
+        self.output = out
 
-    return out
+    def printRule(self):
+        print("Rule with input: ", self.condition, "and output", self.output)
 
-list = chunkIt(list, cs)
+    def compare(self, input):
+        print("do stuff here")
 
-print(list)
+
+def loadDataset(dataloc):
+    rds = []
+    f = open(dataloc, "r")
+    for line in f:
+        line = str(line.rstrip()).split(" ")
+        #print(line)
+        rds.append(line)
+    return rds #raw data
+
+def buildRulebase(dataset):
+    rulebase = []
+    for data in dataset:
+        r = rule()
+        r.setCondition(data[0])
+        r.setOutput(data[1])
+        rulebase.append(r)
+    return rulebase
+
+def printRulebase(rb):
+    for r in rb:
+        print("rule with condition",r.condition,"gives output",r.output)
+
+        
+
+
+
+dataloc = "datasets/data1.txt"
+
+dataset = loadDataset(dataloc)
+rb = buildRulebase(dataset)
+printRulebase(rb)
