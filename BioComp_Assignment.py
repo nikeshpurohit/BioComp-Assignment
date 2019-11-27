@@ -5,7 +5,7 @@ from operator import attrgetter
 
 
 N = 70 #number of bits in the string
-P = 150 #population size (no of individuals in the population)
+P = 1000 #population size (no of individuals in the population)
 nGen = 100 #number of generations
 mutRate = 0.2 #mutation rate 1/N
 nSlice = 10 #how many times should the gene should be split to compare to the rule. should be N / (Size of condLength + outLength)
@@ -39,52 +39,6 @@ class rule():
     def printRule(self):
         print("Rule with condition: ", self.condition, "and output", self.output)
 
-    def compare(self, slice): #returns true if cond and output matches returns false if not
-        if not wildcards:
-            cond = str()
-            out = None
-            for i in range(0,len(slice)-outLength):
-                cond += str(slice[i])
-            out = slice[-1] #output
-            if cond == self.condition:
-                if int(out) == int(self.output):
-                    return True
-            return False
-        else:
-            #match condition
-            match = True
-            for i in range(0,condLength):
-                if (int(slice[i]) == int(self.condition[i]) or int(slice[i]) == 2) and match == True:
-                    #print("bitmatch")   
-                    pass             
-                else:
-                    match = False
-                    #print("bitFAIL")
-            #match output
-            oi = 0
-            if not condLength == condLength+(outLength-1):
-                for i in range(condLength, condLength+(outLength-1)):
-                    print(i)
-                    if (int(slice[i]) == int(self.output[oi]) and match == True):
-                        pass
-                    else: 
-                        match = False
-                    oi+=1
-                return match
-            else:
-                if (int(slice[condLength]) == int(self.output[oi]) and match == True):
-                        pass
-                else: 
-                    match = False
-                    oi+=1
-                return match
-
-
-
-                    
-                
-
-
 
 
 class individual():
@@ -117,15 +71,15 @@ class individual():
     def printFitness(self):
         print(self.fitness)
 
-    def fitnessFunction(self, rulebase):
+    def fitnessFunction(self, rulebase): ###############
         sliceList = self.sliceGene()
         count = 0
         for r in rulebase: 
             found = False
             for slice in sliceList:
-                if r.compare(slice):
+                if compare(r, slice):
                     found = True
-                elif not r.compare(slice):
+                else:
                     found = False
             if found == True:
                 count += 1
@@ -155,8 +109,6 @@ def buildRulebase(dataset):
         r = rule()
         r.setCondition(data[0])
         r.setOutput(data[1])
-        #r.printRule() #prints the rule
-        #print(r.compare(['0','0','0','0','0','0','0'])) #test
         rulebase.append(r)
     return rulebase
 
@@ -203,6 +155,8 @@ def mutateIndividual(indiv): #perform mutation in all bits in an individuals gen
                 if b == 0:
                     if index % (condLength+1) == 0:
                         indiv.gene[index] = random.choice([1,2])
+                if b == 2:
+                    indiv.gene[index] = random.choice([0,1])
 
 def doCrossover(pop):
     motherlist = pop[::2] #get every member at even positions
@@ -258,6 +212,44 @@ def showPlot(mean, best):
     plt.xlabel('Generation')
     plt.ylabel('Fitness')
     plt.show()
+
+
+def compare(rule, slice): #returns true if cond and output matches returns false if not
+    if not wildcards:
+        cond = str()
+        out = None
+        for i in range(0,len(slice)-outLength):
+            cond += str(slice[i])
+        out = slice[-1] #output
+        if cond == self.condition:
+            if int(out) == int(self.output):
+                return True
+        return False
+    else:
+        #match condition
+        match = True
+        for i in range(0,condLength):
+            if (int(slice[i]) == int(rule.condition[i]) or int(slice[i]) == 2) and match == True: 
+                pass             
+            else:
+                break
+        #match output
+        oi = 0
+        if not condLength == condLength+(outLength-1):
+            for i in range(condLength, condLength+(outLength-1)):
+                print(i)
+                if (int(slice[i]) == int(rule.output[i]) and match == True):
+                    pass
+                else: 
+                    break
+                oi+=1
+            return match
+        else:
+            if (int(slice[condLength]) == int(rule.output[0]) and match == True):
+                    pass
+            else: 
+                match = False
+            return match
 
 
 #Import dataset and build rulebase
