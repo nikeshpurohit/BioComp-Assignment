@@ -127,8 +127,8 @@ class individual():
                     found = True
                 elif not r.compare(slice):
                     found = False
-                if found == True:
-                    count += 1
+            if found == True:
+                count += 1
         self.fitness = count
 
     def sliceGene(self):
