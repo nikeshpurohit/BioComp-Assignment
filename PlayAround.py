@@ -1,3 +1,5 @@
+import random
+
 class rule():
     condition = []
     output = []
@@ -56,3 +58,6 @@ dataloc = "datasets/data1.txt"
 dataset = loadDataset(dataloc)
 rb = buildRulebase(dataset)
 printRulebase(rb)
+
+while 5 < 100:
+    print(random.random())
