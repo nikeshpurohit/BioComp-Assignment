@@ -8,15 +8,15 @@ condLength = 6 #the number of bits in the condition
 outLength = 1 #the number of bits in the output
 
 N = 420 #number of bits in the string
-P = 300 #population size (no of individuals in the population)
-nGen = 2000 #number of generations
-mutRate = 0.008 #mutation rate 1/N
+P = 700 #population size (no of individuals in the population)
+nGen = 500 #number of generations
+mutRate = 0.0008 #mutation rate 1/N
 crossoverRate = 0.95 #rate of crossover
 nSlice = N / (condLength + outLength) #how many times should the gene should be split to compare to the rule. should be N / (condLength + outLength)
 maxFitness = 60 #stop searching when this fitness value is reached
 wildcards = True #whether or not to use wildcards
 elitism = True #whether to replace worst individual with best one each generation
-selection = "random" #selection type "roulette" or "random"
+selection = "tournament" #selection type "roulette" or "tournament"
 
 class rule():
     condition = []
@@ -76,7 +76,7 @@ class individual():
     def printFitness(self):
         print(self.fitness)
 
-    def fitnessFunction(self, rulebase): ###############
+    def fitnessFunction(self, rulebase):
         sliceList = self.sliceGene()
         count = 0
         for r in rulebase: 
@@ -146,8 +146,17 @@ def randomIndividual(pop): #function to pick and return a random individual from
     indiv = random.choice(pop)
     return indiv
 
+def selectOneRW(pop):
+        max = sum([c.fitness for c in pop])
+        pick = random.uniform(0, max)
+        current = 0
+        for i in pop:
+            current += i.fitness
+            if current > pick:
+                return i
+
 def selectWinners(pop): #function to select P number of winners by comparing two and selecting the one with the highest fitness or a random one if equal
-    if selection == "random":
+    if selection == "tournament":
         winners = []
         while len(winners) != P:
             i1 = randomIndividual(pop)
@@ -170,31 +179,30 @@ def selectWinners(pop): #function to select P number of winners by comparing two
                 winners.append(random.choice([i1,i2]))
             elif i2.fitness > i1.fitness:
                 winners.append(i2)
-        return winners
-        
-
-
-def selectOneRW(pop):
-        ax = sum([c.fitness for c in pop])
-        pick = random.uniform(0, maxFitness)
-        current = 0
-        for i in pop:
-            current += i.fitness
-            if current > pick:
-                return i
+    return winners
 
 def mutateIndividual(indiv): #perform mutation in all bits in an individuals gene
-    if not wildcards:
+    if wildcards:
         for index, b in enumerate(indiv.gene):
             if random.random() < mutRate:
                 if b == 1:
                     if index % (condLength+1) == 0:
                         indiv.gene[index] = random.choice([0,2])
-                if b == 0:
+                elif b == 0:
                     if index % (condLength+1) == 0:
                         indiv.gene[index] = random.choice([1,2])
-                if b == 2:
+                elif b == 2:
                     indiv.gene[index] = random.choice([0,1])
+    elif not wildcards:
+        for index, b in enumerate(indiv.gene):
+            if random.random() < mutRate:
+                if b == 1:
+                    if index % (condLength+1) == 0:
+                        indiv.gene[index] = 0
+                elif b == 0:
+                    if index % (condLength+1) == 0:
+                        indiv.gene[index] = 1
+
 
 def doCrossover(pop):
     motherlist = pop[::2] #get every member at even positions
@@ -207,7 +215,7 @@ def doCrossover(pop):
             pivotpoint = random.randint(0,N)
             while pivotpoint == 0 or pivotpoint == N: #make sure pivotpoint is not 0 or N
                 pivotpoint = random.randint(0,N)
-            #print("pivotpoint", pivotpoint, "p1gene", motherlist[i].gene, "p2gene", fatherlist[i].gene)
+            #print("pivotpoint", pivotpoint, "p1gene", motherlist[i].fitness, motherlist[i].fitness, "p2gene", fatherlist[i].fitness, fatherlist[i].fitness)
             child1Gene = fatherlist[i].gene[:pivotpoint] + motherlist[i].gene[pivotpoint:]
             child1 = individual()
             child1.setGene(child1Gene)
@@ -235,8 +243,7 @@ def findAllTimeBest(pop, previous):
         previous = pop[0]
     best = previous
     for i in pop:
-        i.fitnessFunction(rulebase)
-        if i.fitness > previous.fitness:
+        if i.fitness > best.fitness:
             best = i
     return best
 
@@ -254,6 +261,7 @@ def replaceWorstWithBest(pop, best):
     return pop
 
 def showPlot(mean, best):
+    print("  Opening graph...")
     plt.plot(best)
     #plt.legend(['Best individual'], ['mean fitness'])
     plt.plot(mean)
@@ -279,14 +287,16 @@ def runGA():
     allTimeBest = None
     generation = 0
 
-    #Create population with random genes
+    #Create population with random genes and generate their fitness values
     population = createInitalPopulation()
     randomisePopulation(population)
-    generation += 1
-
-    #Generate their fitness values
     recalculateAllFitness(population, rulebase)
+
+    #Print some information to the user
     print("  The average fitness for the initial population is", mean(i.fitness for i in population))
+    if wildcards: print("  Wildcards enabled.")
+    if elitism: print("  Elitism enabled.")
+    if selection == "roulette" or selection == "tournament": print("  Selection method: ", selection)
 
     while generation <= nGen: #stop the loop once fitness N is reached
         if goldenBaby == None:
@@ -296,17 +306,17 @@ def runGA():
         print()
         print("========Generation",str(generation)+"========")
         print()
+
         #Perform selection
         winners = selectWinners(population)
-        #print("  mean fitness after selection is", mean(i.fitness for i in winners))
+        if elitism: winners = replaceWorstWithBest(population, allTimeBest)
 
         #Perform crossover
-        if elitism: 
-            winners = replaceWorstWithBest(population, allTimeBest)
         population = doCrossover(winners)
         #print("  mean fitness after crossover is", mean(i.fitness for i in population))
 
         #Perform mutation
+        allTimeBest = findAllTimeBest(population, allTimeBest)
         for i in population:
             mutateIndividual(i)
         recalculateAllFitness(population, rulebase)
@@ -314,13 +324,11 @@ def runGA():
 
         #Gather some data
         if goldenBaby == None:
-            recalculateAllFitness(population, rulebase)
-            goldenBaby = findGoldenBaby(population)     
-        
-        recalculateAllFitness(population, rulebase)
-        allTimeBest = findAllTimeBest(population, allTimeBest)
-        print("  The fittest individual this generation has a fitness value of", allTimeBest.fitness)
-        bestPlot.append(allTimeBest.fitness)
+            goldenBaby = findGoldenBaby(population)
+                
+        if allTimeBest != None:
+            print("  The fittest individual this generation has a fitness value of", allTimeBest.fitness)
+            bestPlot.append(allTimeBest.fitness)
 
         meanVal = mean(i.fitness for i in population)
         print("  The average fitness value for this generation is", meanVal)
@@ -337,6 +345,7 @@ def runGA():
 
         #Finish generation
         generation += 1
+
     showPlot(meanPlot, bestPlot)
 
 
