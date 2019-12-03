@@ -22,6 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="BioComp_Assignment.py" />
+    <Compile Include="BioComp_Assignment_float.py" />
     <Compile Include="PlayAround.py">
       <SubType>Code</SubType>
     </Compile>

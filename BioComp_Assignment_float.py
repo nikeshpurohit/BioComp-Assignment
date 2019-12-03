@@ -3,12 +3,12 @@ from statistics import mean
 import matplotlib.pyplot as plt
 from operator import attrgetter
 
-dataloc = "datasets/data2.txt" #the location of the dataset
+dataloc = "datasets/data3.txt" #the location of the dataset
 condLength = 6 #the number of bits in the condition
 outLength = 1 #the number of bits in the output
 
 N = 420 #number of bits in the string
-P = 7000 #population size (no of individuals in the population)
+P = 300 #population size (no of individuals in the population)
 nGen = 500 #number of generations
 mutRate = 0.0008 #mutation rate 1/N
 crossoverRate = 0.95 #rate of crossover
@@ -17,6 +17,15 @@ maxFitness = 60 #stop searching when this fitness value is reached
 wildcards = True #whether or not to use wildcards
 elitism = True #whether to replace worst individual with best one each generation
 selection = "tournament" #selection type "roulette" or "tournament"
+
+#==========to do===================
+# build rulebase DONE
+# gene randomisation, multiply by cond length DONE
+# figure out the best way to do upper and lower bounds
+# redo fitness function
+# redo mutation
+# TRAINING!
+
 
 class rule():
     condition = []
@@ -44,7 +53,9 @@ class rule():
 
 
 class individual():
-    gene = [] 
+    gene = []
+    upperBound = []
+    lowerBound = []
     fitness = 0
 
     def __init__(self):
@@ -55,17 +66,10 @@ class individual():
         return (self.__class__ == other.__class__ and self.gene == other.gene)
         
     def randomiseGene(self):
-        for i in range (1, N+1):
-            if not wildcards:
-                c = random.randint(0, 1)
+        for i in range (0, N * 2):
+                c = round(random.random(), 6)
                 self.gene.append(c)
-            else: #have a possibility of 2 being appended to the gene
-                if i % (condLength+1) == 0:
-                    c = random.randint(0, 1)
-                    self.gene.append(c)
-                else:
-                    c = random.randint(0, 2)
-                    self.gene.append(c)
+
 
     def setGene(self, gene):
         self.gene = gene
@@ -119,10 +123,11 @@ def buildRulebase(dataset):
     for data in dataset:
         r = rule()
         cond = []
-        for b in data[0]:
-            cond.append(int(b))
+        for b in data[:6]:
+            #print(b)
+            cond.append(float(b))
         r.setCondition(cond)
-        r.setOutput([int(data[1])])
+        r.setOutput([int(data[6])])
         rulebase.append(r)
     return rulebase
 
@@ -351,12 +356,12 @@ def runGA():
 
 
 def testFunc():
-    population = createInitalPopulation()
-    randomisePopulation(population)
-    population[0].fitnessFunction(rulebase)
-    population[0].printFitness()
+    i1 = individual()
+    i1.randomiseGene()
+    i1.printGene()
 
-runGA()
-#testFunc()
+#runGA()
+testFunc()
+#print([data.condition for data in rulebase])
 
 
