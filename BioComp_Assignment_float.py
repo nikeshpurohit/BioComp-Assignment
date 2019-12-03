@@ -7,22 +7,21 @@ dataloc = "datasets/data3.txt" #the location of the dataset
 condLength = 6 #the number of bits in the condition
 outLength = 1 #the number of bits in the output
 
-N = 420 #number of bits in the string
+N = 60 #number of bits in the string
 P = 300 #population size (no of individuals in the population)
 nGen = 500 #number of generations
 mutRate = 0.0008 #mutation rate 1/N
 crossoverRate = 0.95 #rate of crossover
 nSlice = N / (condLength + outLength) #how many times should the gene should be split to compare to the rule. should be N / (condLength + outLength)
 maxFitness = 60 #stop searching when this fitness value is reached
-wildcards = True #whether or not to use wildcards
 elitism = True #whether to replace worst individual with best one each generation
 selection = "tournament" #selection type "roulette" or "tournament"
 
 #==========to do===================
 # build rulebase DONE
 # gene randomisation, multiply by cond length DONE
-# figure out the best way to do upper and lower bounds
-# redo fitness function
+# figure out the best way to do upper and lower bounds - the dumb way lol
+# redo fitness function - 
 # redo mutation
 # TRAINING!
 
@@ -66,7 +65,11 @@ class individual():
         return (self.__class__ == other.__class__ and self.gene == other.gene)
         
     def randomiseGene(self):
-        for i in range (0, N * 2):
+        for i in range (1, ((N * 2) + 1)):
+            if i % 13 == 0:
+                c = random.randint(0, 1)
+                self.gene.append(c)
+            else:
                 c = round(random.random(), 6)
                 self.gene.append(c)
 
@@ -187,18 +190,6 @@ def selectWinners(pop): #function to select P number of winners by comparing two
     return winners
 
 def mutateIndividual(indiv): #perform mutation in all bits in an individuals gene
-    if wildcards:
-        for index, b in enumerate(indiv.gene):
-            if random.random() < mutRate:
-                if b == 1:
-                    if index % (condLength+1) == 0:
-                        indiv.gene[index] = random.choice([0,2])
-                elif b == 0:
-                    if index % (condLength+1) == 0:
-                        indiv.gene[index] = random.choice([1,2])
-                elif b == 2:
-                    indiv.gene[index] = random.choice([0,1])
-    elif not wildcards:
         for index, b in enumerate(indiv.gene):
             if random.random() < mutRate:
                 if b == 1:
@@ -299,7 +290,6 @@ def runGA():
 
     #Print some information to the user
     print("  The average fitness for the initial population is", mean(i.fitness for i in population))
-    if wildcards: print("  Wildcards enabled.")
     if elitism: print("  Elitism enabled.")
     if selection == "roulette" or selection == "tournament": print("  Selection method: ", selection)
 
