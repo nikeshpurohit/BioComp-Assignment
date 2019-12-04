@@ -4,25 +4,25 @@ import matplotlib.pyplot as plt
 from operator import attrgetter
 
 dataloc = "datasets/data3.txt" #the location of the dataset
-condLength = 6 #the number of bits in the condition
+condLength = 6 #the number of bits in the condition 6 for DS3 and 10 for DS4
 outLength = 1 #the number of bits in the output
 
 N = 60 #number of bits in the string
-P = 300 #population size (no of individuals in the population)
+P = 100 #population size (no of individuals in the population)
 nGen = 500 #number of generations
 mutRate = 0.0008 #mutation rate 1/N
 crossoverRate = 0.95 #rate of crossover
 nSlice = N / (condLength + outLength) #how many times should the gene should be split to compare to the rule. should be N / (condLength + outLength)
-maxFitness = 60 #stop searching when this fitness value is reached
+maxFitness = 1000 #stop searching when this fitness value is reached
 elitism = True #whether to replace worst individual with best one each generation
-selection = "tournament" #selection type "roulette" or "tournament"
+selection = "roulette" #selection type "roulette" or "tournament"
 
 #==========to do===================
 # build rulebase DONE
 # gene randomisation, multiply by cond length DONE
 # figure out the best way to do upper and lower bounds - the dumb way lol
 # redo fitness function - 
-# redo mutation
+# redo mutation - partway there
 # TRAINING!
 
 
@@ -30,7 +30,7 @@ class rule():
     condition = []
     output = []
 
-    def __init__(self, condition=[0]*condLength, output=[0]*outLength): 
+    def __init__(self, condition=[0.0]*condLength, output=[0.0]*outLength): 
         self.condition = condition
         self.output = output
         
@@ -69,10 +69,12 @@ class individual():
             if i % 13 == 0:
                 c = random.randint(0, 1)
                 self.gene.append(c)
-            else:
-                c = round(random.random(), 6)
+            elif i % 2 == 0:
+                c = round(random.uniform(0.5,1), 6)
                 self.gene.append(c)
-
+            else:
+                 c = round(random.uniform(0,0.5), 6)
+                 self.gene.append(c)
 
     def setGene(self, gene):
         self.gene = gene
@@ -91,13 +93,13 @@ class individual():
             for slice in sliceList:
                 k = 0
                 while k < condLength:
-                    if r.condition[k] == slice[k] or slice[k] == 2:
-                        k += 1
+                    if r.condition[k] >= slice[k] and r.condition[k] <= slice[k+1]: #lower upper
+                        k += 2
                     else:
                         index +=1
                         break
                 else:
-                    if slice[condLength] == r.output[outLength-1]:
+                    if int(slice[condLength]) == int(r.output[outLength-1]):
                         count += 1
                     index += 1
                     break
@@ -126,11 +128,11 @@ def buildRulebase(dataset):
     for data in dataset:
         r = rule()
         cond = []
-        for b in data[:6]:
+        for b in data[:condLength]:
             #print(b)
             cond.append(float(b))
         r.setCondition(cond)
-        r.setOutput([int(data[6])])
+        r.setOutput([int(data[condLength])])
         rulebase.append(r)
     return rulebase
 
@@ -192,12 +194,23 @@ def selectWinners(pop): #function to select P number of winners by comparing two
 def mutateIndividual(indiv): #perform mutation in all bits in an individuals gene
         for index, b in enumerate(indiv.gene):
             if random.random() < mutRate:
-                if b == 1:
-                    if index % (condLength+1) == 0:
+                if index % 13 == 0: #the output
+                    if indiv.gene[index] == 1:
                         indiv.gene[index] = 0
-                elif b == 0:
-                    if index % (condLength+1) == 0:
+                    elif indiv.gene[index] == 0:
                         indiv.gene[index] = 1
+                    else: #self correcting if output isn't binary for any reason
+                        indiv.gene[index] = random.choice([0,1])
+                elif index % 2 == 0: #upper bound
+                    if indiv.gene[index] + 0.1 > 1:
+                        indiv.gene[index] = indiv.gene[index] - 0.1
+                    else:
+                        indiv.gene[index] = indiv.gene[index] + 0.1
+                else: # lower bound
+                    if indiv.gene[index] + 0.1 > 0.5:
+                        indiv.gene[index] = indiv.gene[index] - 0.1
+                    else:
+                        indiv.gene[index] = indiv.gene[index] + 0.1
 
 
 def doCrossover(pop):
@@ -350,8 +363,8 @@ def testFunc():
     i1.randomiseGene()
     i1.printGene()
 
-#runGA()
-testFunc()
+runGA()
+#testFunc()
 #print([data.condition for data in rulebase])
 
 
