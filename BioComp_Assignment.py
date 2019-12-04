@@ -80,19 +80,16 @@ class individual():
         sliceList = self.sliceGene()
         count = 0
         for r in rulebase: 
-            index = 0
             for slice in sliceList:
                 k = 0
                 while k < condLength:
                     if r.condition[k] == slice[k] or slice[k] == 2:
                         k += 1
                     else:
-                        index +=1
                         break
                 else:
-                    if slice[condLength] == r.output[outLength-1]:
+                    if slice[-1] == r.output[0]:
                         count += 1
-                    index += 1
                     break
         self.fitness = count
 
@@ -309,11 +306,12 @@ def runGA():
 
         #Perform selection
         winners = selectWinners(population)
-        if elitism: winners = replaceWorstWithBest(population, allTimeBest)
+        
 
         #Perform crossover
         population = doCrossover(winners)
         #print("  mean fitness after crossover is", mean(i.fitness for i in population))
+        if elitism: winners = replaceWorstWithBest(population, allTimeBest)
 
         #Perform mutation
         allTimeBest = findAllTimeBest(population, allTimeBest)

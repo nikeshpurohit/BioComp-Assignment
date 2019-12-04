@@ -7,13 +7,13 @@ dataloc = "datasets/data3.txt" #the location of the dataset
 condLength = 6 #the number of bits in the condition 6 for DS3 and 10 for DS4
 outLength = 1 #the number of bits in the output
 
-N = 60 #number of bits in the string
-P = 100 #population size (no of individuals in the population)
-nGen = 500 #number of generations
-mutRate = 0.0008 #mutation rate 1/N
+N = 130 #number of bits in the string
+P = 400 #population size (no of individuals in the population)
+nGen = 400 #number of generations
+mutRate = 0.008 #mutation rate 1/N
 crossoverRate = 0.95 #rate of crossover
-nSlice = N / (condLength + outLength) #how many times should the gene should be split to compare to the rule. should be N / (condLength + outLength)
-maxFitness = 1000 #stop searching when this fitness value is reached
+nSlice = 20 #how many times should the gene should be split to compare to the rule. should be N / (condLength + outLength)
+maxFitness = 10000 #stop searching when this fitness value is reached
 elitism = True #whether to replace worst individual with best one each generation
 selection = "roulette" #selection type "roulette" or "tournament"
 
@@ -89,19 +89,21 @@ class individual():
         sliceList = self.sliceGene()
         count = 0
         for r in rulebase: 
-            index = 0
+            #index = 0
             for slice in sliceList:
                 k = 0
-                while k < condLength:
-                    if r.condition[k] >= slice[k] and r.condition[k] <= slice[k+1]: #lower upper
+                j = 0
+                while j < condLength:
+                    if r.condition[j] >= slice[k] and r.condition[j] <= slice[k+1]: #lower upper
                         k += 2
+                        j += 1
                     else:
-                        index +=1
+                        #index +=1
                         break
                 else:
-                    if int(slice[condLength]) == int(r.output[outLength-1]):
+                    if int(slice[12]) == int(r.output[outLength-1]):
                         count += 1
-                    index += 1
+                    #index += 1
                     break
         self.fitness = count
 
@@ -308,23 +310,25 @@ def runGA():
 
     while generation <= nGen: #stop the loop once fitness N is reached
         if goldenBaby == None:
-            recalculateAllFitness(population, rulebase)
+            #recalculateAllFitness(population, rulebase)
             goldenBaby = findGoldenBaby(population)
 
         print()
         print("========Generation",str(generation)+"========")
         print()
 
+        allTimeBest = findAllTimeBest(population, allTimeBest)
+
         #Perform selection
         winners = selectWinners(population)
-        if elitism: winners = replaceWorstWithBest(population, allTimeBest)
 
         #Perform crossover
         population = doCrossover(winners)
         #print("  mean fitness after crossover is", mean(i.fitness for i in population))
+        if elitism: winners = replaceWorstWithBest(population, allTimeBest)
 
         #Perform mutation
-        allTimeBest = findAllTimeBest(population, allTimeBest)
+        #allTimeBest = findAllTimeBest(population, allTimeBest)
         for i in population:
             mutateIndividual(i)
         recalculateAllFitness(population, rulebase)
