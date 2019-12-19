@@ -3,27 +3,20 @@ from statistics import mean
 import matplotlib.pyplot as plt
 from operator import attrgetter
 
-dataloc = "datasets/data3.txt" #the location of the dataset
-condLength = 6 #the number of bits in the condition 6 for DS3 and 10 for DS4
+dataloc = "datasets/data4.txt" #the location of the dataset
+condLength = 10 #the number of bits in the condition 6 for DS3 and 10 for DS4
 outLength = 1 #the number of bits in the output
 
-N = 130 #number of bits in the string
-P = 400 #population size (no of individuals in the population)
-nGen = 400 #number of generations
+N = 200 #number of bits in the string
+P = 100 #population size (no of individuals in the population)
+nGen = 100 #number of generations
 mutRate = 0.008 #mutation rate 1/N
 crossoverRate = 0.95 #rate of crossover
 nSlice = 20 #how many times should the gene should be split to compare to the rule. should be N / (condLength + outLength)
-maxFitness = 10000 #stop searching when this fitness value is reached
+maxFitness = 1000 #stop searching when this fitness value is reached
 elitism = True #whether to replace worst individual with best one each generation
 selection = "roulette" #selection type "roulette" or "tournament"
 
-#==========to do===================
-# build rulebase DONE
-# gene randomisation, multiply by cond length DONE
-# figure out the best way to do upper and lower bounds - the dumb way lol
-# redo fitness function - 
-# redo mutation - partway there
-# TRAINING!
 
 
 class rule():
@@ -89,7 +82,6 @@ class individual():
         sliceList = self.sliceGene()
         count = 0
         for r in rulebase: 
-            #index = 0
             for slice in sliceList:
                 k = 0
                 j = 0
@@ -98,12 +90,10 @@ class individual():
                         k += 2
                         j += 1
                     else:
-                        #index +=1
                         break
                 else:
                     if int(slice[12]) == int(r.output[outLength-1]):
                         count += 1
-                    #index += 1
                     break
         self.fitness = count
 
@@ -262,7 +252,7 @@ def replaceWorstWithBest(pop, best):
     if best != None:
         worst = min(pop, key=attrgetter('fitness')) #get the individual with the lowest fitness value from the list
         if worst.fitness != best.fitness:
-            if not best in pop:
+            if not best in pop: #IGNORE
                 pop = [best if x==worst else x for x in pop] #replace the worst with the best
                 print("  Elitism: Replaced worst individual with fitness", worst.fitness, "with best idividual of fitness", best.fitness)
             else:

@@ -3,14 +3,14 @@ from statistics import mean
 import matplotlib.pyplot as plt
 from operator import attrgetter
 
-dataloc = "datasets/data2.txt" #the location of the dataset
+dataloc = "datasets/data1.txt" #the location of the dataset
 condLength = 6 #the number of bits in the condition
 outLength = 1 #the number of bits in the output
 
-N = 420 #number of bits in the string
-P = 7000 #population size (no of individuals in the population)
-nGen = 500 #number of generations
-mutRate = 0.0008 #mutation rate 1/N
+N = 140 #number of bits in the string
+P = 300 #population size (no of individuals in the population)
+nGen = 100 #number of generations
+mutRate = 0.0002 #mutation rate 1/N
 crossoverRate = 0.95 #rate of crossover
 nSlice = N / (condLength + outLength) #how many times should the gene should be split to compare to the rule. should be N / (condLength + outLength)
 maxFitness = 60 #stop searching when this fitness value is reached
@@ -240,7 +240,7 @@ def findAllTimeBest(pop, previous):
         previous = pop[0]
     best = previous
     for i in pop:
-        if i.fitness > best.fitness:
+        if i.fitness >= best.fitness:
             best = i
     return best
 
@@ -248,11 +248,11 @@ def replaceWorstWithBest(pop, best):
     if best != None:
         worst = min(pop, key=attrgetter('fitness')) #get the individual with the lowest fitness value from the list
         if worst.fitness != best.fitness:
-            if not best in pop:
-                pop = [best if x==worst else x for x in pop] #replace the worst with the best
-                print("  Elitism: Replaced worst individual with fitness", worst.fitness, "with best idividual of fitness", best.fitness)
-            else:
-                print("  Elitism: population already contains the best individual")
+            #if not best in pop:
+            pop = [best if x==worst else x for x in pop] #replace the worst with the best
+            print("  Elitism: Replaced worst individual with fitness", worst.fitness, "with best idividual of fitness", best.fitness)
+            #else:
+             #   #print("  Elitism: population already contains the best individual")
         else:
             print("  Elitism: Population contians all same fitness values!")
     return pop
@@ -295,6 +295,7 @@ def runGA():
     if elitism: print("  Elitism enabled.")
     if selection == "roulette" or selection == "tournament": print("  Selection method: ", selection)
 
+    generation += 1
     while generation <= nGen: #stop the loop once fitness N is reached
         if goldenBaby == None:
             recalculateAllFitness(population, rulebase)
@@ -304,17 +305,21 @@ def runGA():
         print("========Generation",str(generation)+"========")
         print()
 
+        
+
         #Perform selection
         winners = selectWinners(population)
+        allTimeBest = findAllTimeBest(population, allTimeBest)
+        if elitism: winners = replaceWorstWithBest(population, allTimeBest)
         
 
         #Perform crossover
         population = doCrossover(winners)
         #print("  mean fitness after crossover is", mean(i.fitness for i in population))
-        if elitism: winners = replaceWorstWithBest(population, allTimeBest)
+        
 
         #Perform mutation
-        allTimeBest = findAllTimeBest(population, allTimeBest)
+
         for i in population:
             mutateIndividual(i)
         recalculateAllFitness(population, rulebase)
